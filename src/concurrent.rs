@@ -12,10 +12,10 @@ pub struct Status {
 pub struct Process {
     pub id: String,
     //pub msgReceiver: Receiver<Message>,
-    pub msgSender: Sender<Message>,
+    pub msg_sender: Sender<Message>,
 
-    pub statusReceiver: Receiver<Status>,
-    pub statusSender: Sender<Status>
+    pub status_receiver: Receiver<Status>,
+    pub status_sender: Sender<Status>
 }
 
 
@@ -26,17 +26,17 @@ pub enum Message {
 
 impl Process {
     pub fn start (id: String) -> Process {
-        let (msgS,msgR) = channel::<Message>();
-        let (statusS,statusR) = channel::<Status>();
-        let outp = statusS.clone();
+        let (msg_s,msg_r) = channel::<Message>();
+        let (status_s,status_r) = channel::<Status>();
+        let outp = status_s.clone();
 
         let h = thread::spawn(move || {
             let mut cond = true;
             while cond  {
-                let msg = msgR.recv().unwrap();
+                let msg = msg_r.recv().unwrap();
                 match msg {
                     Message::RequestStatus => {
-                        outp.send(Status{progress: 10, context : "nada".to_string()});
+                        let sr = outp.send(Status{progress: 10, context : "nada".to_string()});
                         cond = true;
                     },
                     Message::RequestCancel => cond = false,
@@ -46,10 +46,9 @@ impl Process {
 
         return Process{
             id : id,
-            //msgReceiver : msgR,
-            msgSender : msgS,
-            statusReceiver : statusR,
-            statusSender : statusS
+            msg_sender : msg_s,
+            status_receiver : status_r,
+            status_sender : status_s
         };
     }
 }
