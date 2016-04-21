@@ -36,7 +36,7 @@ pub fn start() {
                 });
 
                 // Create endpoint for POST /chats/:id/users/:user_id
-                chat_ns.post("users/:user_id", |endpoint| {
+                chat_ns.get("users/:user_id", |endpoint| {
 
                     // Add description
                     endpoint.desc("Update user");

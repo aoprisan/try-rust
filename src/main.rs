@@ -1,5 +1,6 @@
 //#[plugin]
 mod concurrent;
+mod restserver;
 
 fn main() {
     let p1 = concurrent::Process::start("p1".to_string());
@@ -13,4 +14,6 @@ fn main() {
     mr.send(concurrent::Message::RequestStatus).unwrap();
     let r2 = rs.recv().unwrap();
     println!("{:?}", r2);
+
+    restserver::start();
 }
