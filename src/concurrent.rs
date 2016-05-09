@@ -2,8 +2,11 @@ use std::thread;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
+extern crate rustc_serialize;
 
-#[derive(Debug)]
+
+
+#[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
 pub struct Status {
     pub progress: u64,
     pub context: String
@@ -18,7 +21,7 @@ pub struct Process {
     pub status_sender: Sender<Status>
 }
 
-
+#[derive(Clone)]
 pub enum Message {
     RequestStatus,
     RequestCancel

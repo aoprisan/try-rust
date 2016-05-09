@@ -7,8 +7,7 @@ authors = ["Andrei Oprisan <aoprisan@gmail.com>"]
 git = "https://github.com/rustless/rustless"
 
 [dependencies]
-nix = "0.5.0"
-rustc-serialize = "0.3.19"
-hyper = "0.8.1"
-iron = "0.3.0"
-valico = "0.8.2"
+iron = "*"
+router = "*"
+hyper = "*"
+rustc-serialize = "*"
