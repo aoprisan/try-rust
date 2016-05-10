@@ -17,46 +17,48 @@ mod concurrent;
 use concurrent::Status;
 
 #[derive(RustcEncodable, RustcDecodable)]
-struct Greeting {
-    msg: String
+struct StartTask {
+    id: u64
 }
 
-fn main() {
-    let greeting = Arc::new(Mutex::new(Greeting { msg: "Hello, World".to_string() }));
-    let greeting_clone = greeting.clone();
-
-    let status: Arc<Mutex<HashMap<u64, Status>>> = Arc::new(Mutex::new(HashMap::new()));
-    let status_clone = status.clone();
-
-    let mut router = Router::new();
-
+fn start_process(status: Arc<Mutex<HashMap<u64, Status>>>, task_id: u64) {
     let c = status.clone();
     thread::spawn(move || {
         for i in 1..100 {
             {
                 let m = &mut c.lock().unwrap();
-                m.insert(0, Status{ progress: i + 100000, context: "in progress".to_string()});
+                m.insert(task_id, Status{ progress: i, context: "in progress".to_string()});
             }
             thread::sleep(Duration::from_secs(1));
         }
+        let m = &mut c.lock().unwrap();
+        m.insert(task_id, Status{ progress: 100, context: "done".to_string()});
     });
+}
 
-    router.get("/", move |r: &mut Request| hello_world(r, &greeting.lock().unwrap(), &status.lock().unwrap()));
-    router.post("/set", move |r: &mut Request|
-        set_greeting(r, &mut greeting_clone.lock().unwrap(), &mut status_clone.lock().unwrap()));
+fn main() {
+    let status: Arc<Mutex<HashMap<u64, Status>>> = Arc::new(Mutex::new(HashMap::new()));
+    let status_clone: Arc<Mutex<HashMap<u64, Status>>> = status.clone();
 
-    fn hello_world(_: &mut Request, greeting: &Greeting, statuses: & HashMap<u64,Status>) -> IronResult<Response> {
-        let payload = json::encode(&statuses.get(&0)).unwrap();
+    let mut router = Router::new();
+
+    router.get("/:taskId", move |r: &mut Request| task_status(r, &status.lock().unwrap()));
+    router.post("/start", move |r: &mut Request|
+        start_task(r, status_clone.clone()));
+
+    fn task_status(req: &mut Request, statuses: & HashMap<u64,Status>) -> IronResult<Response> {
+        let ref task_id = req.extensions.get::<Router>().unwrap().find("taskId").unwrap_or("/").parse::<u64>().unwrap();
+        let payload = json::encode(&statuses.get(&task_id)).unwrap();
         Ok(Response::with((status::Ok, payload)))
     }
 
     // Receive a message by POST and play it back.
-    fn set_greeting(request: &mut Request, greeting: &mut Greeting, statuses: &mut HashMap<u64,Status>) -> IronResult<Response> {
+    fn start_task(request: &mut Request, statuses: Arc<Mutex<HashMap<u64, Status>>>) -> IronResult<Response> {
         let mut payload = String::new();
         request.body.read_to_string(&mut payload).unwrap();
-        *greeting = json::decode(&payload).unwrap();
-        println!("{:?}", statuses.get(&0));
-        Ok(Response::with(status::Ok))
+        let task_start_request: StartTask = json::decode(&payload).unwrap();
+        start_process(statuses, task_start_request.id);
+        Ok(Response::with((status::Ok, json::encode(&task_start_request).unwrap())))
     }
 
     Iron::new(router).http("localhost:3000").unwrap();
