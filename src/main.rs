@@ -13,8 +13,11 @@ use std::thread;
 use std::time::Duration;
 use std::collections::HashMap;
 
-mod concurrent;
-use concurrent::Status;
+#[derive(Debug, Clone, RustcEncodable, RustcDecodable)]
+pub struct Status {
+    pub progress: u64,
+    pub context: String
+}
 
 #[derive(RustcEncodable, RustcDecodable)]
 struct StartTask {
